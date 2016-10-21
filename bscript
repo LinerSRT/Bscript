@@ -94,4 +94,6 @@ do
 		kk_build_flash
 	fi
 done
-echo "Use -k or -f args for build [-k] or build and flash[-f]"
+if [ "getopts $rc$opt == 0" ]; then
+	echo "Use -k or -f args for build [-k] or build and flash[-f]"
+fi
