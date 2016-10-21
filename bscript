@@ -1,0 +1,97 @@
+#!/bin/bash
+export curdate=`date "+_%H:%M"`
+export curdate2=`date "+%Y/%m/%d"`
+#Variables
+KK_PROJECT="thl4000"
+KK_PATH="/home/$USER/Android/kernel/new"
+KK_KERNEL_PATH="$KK_PATH/out/target/product/$KK_PROJECT/obj/KERNEL_OBJ/arch/arm/boot/zImage"
+CROSS_COMPILE="/home/$USER/arm-cortex_a7-linux-gnueabihf-linaro_4.9.4-2015.06/bin/arm-cortex_a7-linux-gnueabihf-"
+OUT="/home/$USER/out_folder"
+KK_BOOT_PATH="$OUT/kk_boot"
+#-------------------------------------------
+SPROUT_PROJECT="fresh_defconfig"
+SPROUT_PATH="/home/$USER/Android/kernel/sprout"
+SPROUT_KERNEL_PATH="$PROUT_PATH/arch/arm/boot/zImage"
+SPROUT_BOOT_PATH="$OUT/sprout_boot"
+ARCH="ARCH=arm"
+#-------------------------------------------
+#config out folder
+if [ ! -d "$OUT" ]
+	then
+		mkdir out_folder
+	fi
+clear
+#-------------------------------------------
+#Build 3.4.* kernel
+kk_build(){
+	clear
+	echo -e ">$curdate2 Starting building..."
+	BUILD_START=$(date +"%s")
+	cd $KK_PATH
+	echo -e ">$curdate2 Building..."
+	./makeMtk $KK_PROJECT r k > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		cp $KK_KERNEL_PATH $KK_BOOT_PATH
+		cd $OUT
+		echo -e ">$curdate2 Packing boot..."
+		if [ ! -f "a.exe" ]
+		then
+			wget https://www.dropbox.com/s/tu7jd8fxuvrdl9d/a.exe > /dev/null 2>&1
+			sleep 1.5s
+		fi
+		wine a.exe $KK_BOOT_PATH kk_boot$curdate.img > /dev/null 2>&1
+		BUILD_END=$(date +"%s")
+		DIFF=$(($BUILD_END - $BUILD_START))
+		echo -e ">Kernel compiled and packed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
+	else
+		echo -e ">$curdate2 Error!!!"
+	fi
+}
+
+kk_build_flash(){
+	clear
+	echo -e ">$curdate2 Starting building..."
+	BUILD_START=$(date +"%s")
+	cd $KK_PATH
+	echo -e ">$curdate2 Building..."
+	./makeMtk $KK_PROJECT r k > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		cp $KK_KERNEL_PATH $KK_BOOT_PATH
+		cd $OUT
+		echo -e ">$curdate2 Packing boot..."
+		if [ ! -f "a.exe" ]
+		then
+			wget https://www.dropbox.com/s/tu7jd8fxuvrdl9d/a.exe > /dev/null 2>&1
+			sleep 1.5s
+		fi
+		wine a.exe $KK_BOOT_PATH kk_boot.img > /dev/null 2>&1
+		echo -e ">$curdate2 Rebooting $KK_PROJECT to fastboot and flash boot..."
+		adb reboot bootloader > /dev/null 2>&1
+		sleep 7s
+		fastboot flash boot kk_boot.img > /dev/null 2>&1
+		sleep 1s
+		echo -e ">$curdate2 Rebooting to normal mode..."
+		fastboot reboot > /dev/null 2>&1
+		BUILD_END=$(date +"%s")
+		DIFF=$(($BUILD_END - $BUILD_START))
+		echo -e ">Kernel compiled, packed and flashed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
+	else
+		echo -e ">$curdate2 Error!!!"
+	fi
+}
+
+readopt='getopts $opts opt;rc=$?;[ $rc$opt == 0? ]&&exit 1;[ $rc == 0 ]||{ shift $[OPTIND-1];false; }'
+
+opts=ksfg:
+
+# Enumerating options
+while eval $readopt
+do
+	if [ $opt == k ]; then
+		kk_build
+	fi
+	if [ $opt == f ]; then
+		kk_build_flash
+	fi
+done
+echo "Use -k or -f args for build [-k] or build and flash[-f]"
