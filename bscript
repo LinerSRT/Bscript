@@ -79,6 +79,34 @@ kk_build_flash(){
 		echo -e ">$curdate2 Error!!!"
 	fi
 }
+#-------------------------------------------
+#Build 3.10.* kernel
+sprout_build(){
+	clear
+	echo -e ">$curdate2 Starting building..."
+	BUILD_START=$(date +"%s")
+	cd $SPROUT_PATH
+	export $ARCH > /dev/null 2>&1
+	make $SPROUT_PROJECT > /dev/null 2>&1
+	make > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		cp $SPROUT_KERNEL_PATH $SPROUT_BOOT_PATH
+		cd $OUT
+		echo -e ">$curdate2 Packing boot..."
+		if [ ! -f "a.exe" ]
+		then
+			wget https://www.dropbox.com/s/tu7jd8fxuvrdl9d/a.exe > /dev/null 2>&1
+			sleep 1.5s
+		fi
+		wine a.exe $SPROUT_BOOT_PATH sprout_boot$curdate.img > /dev/null 2>&1
+		BUILD_END=$(date +"%s")
+		DIFF=$(($BUILD_END - $BUILD_START))
+		echo -e ">Kernel compiled and packed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
+	else
+		echo -e ">$curdate2 Error!!!"
+	fi
+	
+}
 
 readopt='getopts $opts opt;rc=$?;[ $rc$opt == 0? ]&&exit 1;[ $rc == 0 ]||{ shift $[OPTIND-1];false; }'
 
@@ -93,7 +121,10 @@ do
 	if [ $opt == f ]; then
 		kk_build_flash
 	fi
+	if [ $opt == s ]; then
+		sprout_build
+	fi
 done
 if [ "getopts $rc$opt == 0" ]; then
-	echo "Use -k or -f args for build [-k] or build and flash[-f]"
+	echo "Use -k or -f or -s args for build 3.4 kernel[-k] or build and flash[-f] 3.4 kernel or build 3.10 kernel[-s]"
 fi
