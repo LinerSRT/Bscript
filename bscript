@@ -16,6 +16,11 @@ SPROUT_PATH="/home/$USER/Android/kernel/sprout"
 SPROUT_KERNEL_PATH="$PROUT_PATH/arch/arm/boot/zImage"
 SPROUT_BOOT_PATH="$OUT/sprout_boot"
 #-------------------------------------------
+LP_PROJECT="iq_defconfig"
+LP_PATH="/home/$USER/Android/kernel/lp"
+LP_KERNEL_PATH="$PROUT_PATH/arch/arm/boot/zImage"
+LP_BOOT_PATH="$OUT/lp_boot"
+#-------------------------------------------
 #config out folder
 if [ ! -d "$OUT" ]
 	then
@@ -32,7 +37,7 @@ kk_build(){
 	echo -e ">$curdate2 Building..."
 	./makeMtk $KK_PROJECT r k > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
-		cp $KK_KERNEL_PATH $KK_BOOT_PATH
+		cp $KK_KERNEL_PATH $KK_BOOT_PATH/kernel/
 		cd $OUT
 		echo -e ">$curdate2 Packing boot..."
 		if [ ! -f "a.exe" ]
@@ -57,7 +62,7 @@ kk_build_flash(){
 	echo -e ">$curdate2 Building..."
 	./makeMtk $KK_PROJECT r k > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
-		cp $KK_KERNEL_PATH $KK_BOOT_PATH
+		cp $KK_KERNEL_PATH $KK_BOOT_PATH/kernel/
 		cd $OUT
 		echo -e ">$curdate2 Packing boot..."
 		if [ ! -f "a.exe" ]
@@ -82,6 +87,40 @@ kk_build_flash(){
 }
 #-------------------------------------------
 #Build 3.10.* kernel
+lp_build(){
+	clear
+	echo -e ">$curdate2 Starting building..."
+	BUILD_START=$(date +"%s")
+	cd $LP_PATH
+	export $ARCH > /dev/null 2>&1
+	make $LP_PROJECT > /dev/null 2>&1
+	echo -e ">$curdate2 Building..."
+	make > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		cp $LP_KERNEL_PATH $LP_BOOT_PATH
+		cd $OUT
+		echo -e ">$curdate2 Packing boot..."
+		if [ ! -f "a.exe" ]
+		then
+			wget https://www.dropbox.com/s/tu7jd8fxuvrdl9d/a.exe > /dev/null 2>&1
+			sleep 1.5s
+		fi
+		wine a.exe $LP_BOOT_PATH lp_boot.img > /dev/null 2>&1
+		echo -e ">$curdate2 Rebooting $LP_PROJECT to fastboot and flash boot..."
+		adb reboot bootloader > /dev/null 2>&1
+		sleep 7s
+		fastboot flash boot lp_boot.img > /dev/null 2>&1
+		sleep 1s
+		echo -e ">$curdate2 Rebooting to normal mode..."
+		fastboot reboot > /dev/null 2>&1
+		BUILD_END=$(date +"%s")
+		DIFF=$(($BUILD_END - $BUILD_START))
+		echo -e ">Kernel compiled, packed and flashed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
+	else
+		echo -e ">$curdate2 Error!!!"
+	fi
+}
+#--------------------------------------------
 sprout_build(){
 	clear
 	echo -e ">$curdate2 Starting building..."
@@ -89,6 +128,7 @@ sprout_build(){
 	cd $SPROUT_PATH
 	export $ARCH > /dev/null 2>&1
 	make $SPROUT_PROJECT > /dev/null 2>&1
+	echo -e ">$curdate2 Building..."
 	make > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		cp $SPROUT_KERNEL_PATH $SPROUT_BOOT_PATH
@@ -99,19 +139,24 @@ sprout_build(){
 			wget https://www.dropbox.com/s/tu7jd8fxuvrdl9d/a.exe > /dev/null 2>&1
 			sleep 1.5s
 		fi
-		wine a.exe $SPROUT_BOOT_PATH sprout_boot$curdate.img > /dev/null 2>&1
+		wine a.exe $SPROUT_BOOT_PATH sp_boot.img > /dev/null 2>&1
+		echo -e ">$curdate2 Rebooting $SPROUT_PROJECT to fastboot and flash boot..."
+		adb reboot bootloader > /dev/null 2>&1
+		sleep 7s
+		fastboot flash boot sp_boot.img > /dev/null 2>&1
+		sleep 1s
+		echo -e ">$curdate2 Rebooting to normal mode..."
+		fastboot reboot > /dev/null 2>&1
 		BUILD_END=$(date +"%s")
 		DIFF=$(($BUILD_END - $BUILD_START))
-		echo -e ">Kernel compiled and packed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
+		echo -e ">Kernel compiled, packed and flashed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
 	else
 		echo -e ">$curdate2 Error!!!"
 	fi
-	
 }
-
 readopt='getopts $opts opt;rc=$?;[ $rc$opt == 0? ]&&exit 1;[ $rc == 0 ]||{ shift $[OPTIND-1];false; }'
 
-opts=ksfg:
+opts=ksflg:
 
 # Enumerating options
 while eval $readopt
@@ -125,7 +170,8 @@ do
 	if [ $opt == s ]; then
 		sprout_build
 	fi
+	if [ $opt == l ]; then
+		lp_build
+	fi
 done
-if [ "getopts $rc$opt == 0" ]; then
-	echo "Use -k or -f or -s args for build 3.4 kernel[-k] or build and flash[-f] 3.4 kernel or build 3.10 kernel[-s]"
-fi
+echo "opts: -k/-f(build kk/flash kk) | -s(build sprout) | -l(build, flash lp)"
