@@ -97,7 +97,7 @@ lp_build(){
 	echo -e ">$curdate2 Building..."
 	make > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
-		cp $LP_KERNEL_PATH $LP_BOOT_PATH
+		cp $LP_KERNEL_PATH $LP_BOOT_PATH/kernel
 		cd $OUT
 		echo -e ">$curdate2 Packing boot..."
 		if [ ! -f "a.exe" ]
@@ -131,7 +131,7 @@ sprout_build(){
 	echo -e ">$curdate2 Building..."
 	make > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
-		cp $SPROUT_KERNEL_PATH $SPROUT_BOOT_PATH
+		cp $SPROUT_KERNEL_PATH $SPROUT_BOOT_PATH/kernel
 		cd $OUT
 		echo -e ">$curdate2 Packing boot..."
 		if [ ! -f "a.exe" ]
