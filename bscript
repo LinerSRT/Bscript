@@ -18,7 +18,7 @@ SPROUT_BOOT_PATH="$OUT/sprout_boot"
 #-------------------------------------------
 LP_PROJECT="iq_defconfig"
 LP_PATH="/home/$USER/Android/kernel/lp"
-LP_KERNEL_PATH="$PROUT_PATH/arch/arm/boot/zImage"
+LP_KERNEL_PATH="$LP_PATH/arch/arm/boot/zImage"
 LP_BOOT_PATH="$OUT/lp_boot"
 #-------------------------------------------
 #config out folder
@@ -95,7 +95,7 @@ lp_build(){
 	export $ARCH > /dev/null 2>&1
 	make $LP_PROJECT > /dev/null 2>&1
 	echo -e ">$curdate2 Building..."
-	make > /dev/null 2>&1
+	make | tee log.log > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		cp $LP_KERNEL_PATH $LP_BOOT_PATH/kernel
 		cd $OUT
